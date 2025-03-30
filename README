@@ -1,0 +1,29 @@
+# 👀 peeky-data
+
+**peeky-data** is a lightweight Streamlit dashboard for quickly exploring and summarizing CSV files. Upload your dataset and get instant insights — no code required.
+
+## 🚀 Features
+
+- 🔍 **Column type detection** — String, int, float, and numeric-like strings
+- 📉 **Missing values summary** — NaN counts for every column
+- 🧮 **Numeric stats** — Min, max, mean, and standard deviation
+- 🏷️ **Categorical summary** — Unique values and top 5 frequent values with percentages
+- 🔢 **Smart binning for integer columns** — Automatically bins high-cardinality integer columns into 10 bins and summarizes them
+
+## 🧪 Example Use Cases
+
+- Quickly understand the shape and quality of a new dataset
+- Spot anomalies in value distributions
+- Share a no-code tool with non-technical teammates to explore data
+
+## 🌐 Try it online
+
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://your-username-peeky-data.streamlit.app)
+
+## 💻 Run locally
+
+```bash
+git clone https://github.com/your-username/peeky-data
+cd peeky-data
+pip install -r requirements.txt
+streamlit run app.py
