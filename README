@@ -10,6 +10,12 @@
 - 🏷️ **Categorical summary** — Unique values and top 5 frequent values with percentages
 - 🔢 **Smart binning for integer columns** — Automatically bins high-cardinality integer columns into 10 bins and summarizes them
 
+## 🎬 Demo
+
+![peeky-data demo](dashboard_demo.gif)
+
+
+
 ## 🌐 Try it online
 
 👉 [peeky-data.streamlit.app](https://peeky-data.streamlit.app/)
