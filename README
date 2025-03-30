@@ -10,15 +10,11 @@
 - 🏷️ **Categorical summary** — Unique values and top 5 frequent values with percentages
 - 🔢 **Smart binning for integer columns** — Automatically bins high-cardinality integer columns into 10 bins and summarizes them
 
-## 🧪 Example Use Cases
-
-- Quickly understand the shape and quality of a new dataset
-- Spot anomalies in value distributions
-- Share a no-code tool with non-technical teammates to explore data
-
 ## 🌐 Try it online
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://your-username-peeky-data.streamlit.app)
+👉 [peeky-data.streamlit.app](https://peeky-data.streamlit.app/)
+
+No setup needed — just upload your CSV and explore.
 
 ## 💻 Run locally
 
