@@ -129,3 +129,8 @@ if uploaded_file:
 
 # for the integer values wuth unique value more than 10, I want to devide them into bins (10 bins)
 # then instead of having the dictionary on the unique values, i wanna have that on bins, on the name of the col add (bined) for the cases this happens. 
+
+
+#userids
+
+#dates and times
