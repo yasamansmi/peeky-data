@@ -24,7 +24,9 @@ No setup needed — just upload your CSV and explore.
 ## 💻 Run locally
 
 ```bash
-git clone https://github.com/your-username/peeky-data
+git clone https://github.com/yasamansmi/peeky-data
 cd peeky-data
 pip install -r requirements.txt
-streamlit run app.py
+streamlit run dataframe_explorer_streamlit.py
+
+```
