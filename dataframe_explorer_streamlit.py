@@ -1,136 +1,77 @@
-import streamlit as st
+"""Peeky Data: a small, testable CSV exploration tool."""
+from pathlib import Path
+import json
+
 import pandas as pd
-import numpy as np
+import streamlit as st
 
-# print(pd.describe_option()) 
-# pd.options.mode.dtype_backend = "numpy_nullable"
+from data_quality import CSVError, distribution, load_csv, profile, report_json
 
+st.set_page_config(page_title='Peeky Data · CSV explorer', page_icon='👀', layout='wide')
+st.title('Peeky Data')
+st.write('Get to know your CSV before you work with it.')
+st.caption('Find missing values, repeated rows, and column patterns. Nothing is changed automatically.')
 
-st.title("📊 DataFrame Analyzer Dashboard")
+source = st.radio('Start exploring', ['Try the sample', 'Upload a CSV'], horizontal=True)
+if source == 'Try the sample':
+    data = (Path(__file__).parent / 'data/sample.csv').read_bytes()
+    delimiter = ','
+    st.info('Sample: 15 fictional orders, with missing values and one repeated row to investigate.')
+else:
+    st.caption('UTF-8 CSV · up to 10 MB, 100,000 rows, and 200 columns. Files are processed on the app server; this app does not save uploads to disk. Use non-sensitive data on the public demo.')
+    separator = st.selectbox('Separator', ['Comma', 'Semicolon', 'Tab'])
+    delimiter = {'Comma': ',', 'Semicolon': ';', 'Tab': '\t'}[separator]
+    uploaded = st.file_uploader('Choose a CSV', type=['csv'])
+    if uploaded is None:
+        st.info('Upload a file, or select “Try the sample” above.')
+        st.stop()
+    data = uploaded.getvalue()
 
-# Load a local DataFrame (you can replace this with your own DataFrame)
-uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"])
-if uploaded_file:
-    df = pd.read_csv(uploaded_file)
-    st.write("### Preview of Data", df.head())
+try:
+    frame = load_csv(data, delimiter)
+except CSVError as exc:
+    st.error(str(exc))
+    st.stop()
 
-    df_clean = df.copy()
+summary = profile(frame)
+for area, label, value in zip(st.columns(4), ['Rows', 'Columns', 'Missing cells', 'Repeated rows'],
+                              [summary['rows'], summary['columns'], summary['missing_cells'], summary['duplicate_rows']]):
+    area.metric(label, f'{value:,}')
+st.caption(f"{summary['missing_pct']}% of cells are blank · Repeated rows count occurrences after the first.")
 
-    # Remove NaNs temporarily for type analysis
-    non_na_df = df_clean.dropna()
-
-    string_cols = []
-    numeric_cols = []
-    int_cols = []
-    float_cols = []
-    convertible_to_numeric = []
-
-    for col in df_clean.columns:
-        col_no_na = df_clean[col].dropna()
-
-        if col_no_na.empty:
-            continue
-
-        try:
-            # Try to convert to numeric
-            converted = pd.to_numeric(col_no_na)
-            numeric_cols.append(col)
-
-            if pd.api.types.is_integer_dtype(converted):
-                int_cols.append(col)
-            elif pd.api.types.is_float_dtype(converted):
-                float_cols.append(col)
-            else:
-                convertible_to_numeric.append(col)
-        except:
-            if pd.api.types.is_string_dtype(col_no_na):
-                string_cols.append(col)
-            else:
-                # Check if it's string but convertible
-                try:
-                    pd.to_numeric(col_no_na)
-                    convertible_to_numeric.append(col)
-                except:
-                    string_cols.append(col)
-
-    st.markdown("## 🧠 Column Type Summary")
-    st.write("**String columns:**", string_cols)
-    st.write("**Convertible to numeric (string to number):**", convertible_to_numeric)
-    st.write("**Numeric columns:**", numeric_cols)
-    st.write("→ **Integer columns:**", int_cols)
-    st.write("→ **Float columns:**", float_cols)
-
-    st.markdown("## ❓ Missing Values")
-    nan_counts = df_clean.isna().sum().reset_index()
-    nan_counts.columns = ["Column", "NaNs"]
-    nan_counts["NaNs"] = nan_counts["NaNs"].astype(int)  # Ensure safe dtype for JS rendering
-    st.table(nan_counts)
-
-    st.markdown("## 🔢 Numeric Column Stats")
-    if numeric_cols:
-        numeric_df = df_clean[numeric_cols].apply(pd.to_numeric, errors='coerce')
-        numeric_stats = numeric_df.agg(['min', 'max', 'mean', 'std']).T
-        st.dataframe(numeric_stats)
+overview, details, report = st.tabs(['Overview', 'Explore a column', 'Quality report'])
+with overview:
+    st.subheader('Where to look first')
+    table = pd.DataFrame(summary['column_details']).drop(columns=['stats'], errors='ignore')
+    st.dataframe(table.rename(columns={'column': 'Column', 'type': 'Inferred type', 'missing': 'Missing',
+        'missing_pct': 'Missing (%)', 'unique': 'Distinct values', 'non_finite': 'Infinite values'}), hide_index=True, width='stretch')
+    st.subheader('Data preview')
+    st.caption('First 50 rows · Original values are preserved, including leading zeros.')
+    st.dataframe(frame.head(50), hide_index=True, width='stretch')
+with details:
+    selected = st.selectbox('Column', frame.columns)
+    item = next(col for col in summary['column_details'] if col['column'] == selected)
+    if item['type'] == 'empty':
+        st.info('This column contains only blank values.')
     else:
-        st.info("No numeric columns found.")
-
-    st.markdown("## 🏷️ Categorical Column Summary")
-    if string_cols:
-        summary_data = []
-
-        for col in string_cols:
-            value_counts = df_clean[col].value_counts(normalize=True, dropna=True).head(5)
-            top_values = {str(k): round(v*100,2) for k,v in value_counts.items()}
-            summary_data.append({
-                "Column": col,
-                "Unique Values": df_clean[col].nunique(dropna=True),
-                "Top 5 Values (%)": ", ".join([f"{k}: {v}%" for k, v in top_values.items()]),
-
-            })
-        st.dataframe(summary_data)
-
-    else:
-        st.info("No categorical columns found.")
-
-    st.markdown("## 🔢 Integer Column Summary")
-    if int_cols:
-        int_summary_data = []
-
-        for col in int_cols:
-            unique_count = df_clean[col].nunique(dropna=True)
-
-            if unique_count > 10:
-                # Bin the data into 10 equal-width bins
-                binned_series = pd.cut(df_clean[col], bins=10)
-                value_counts = binned_series.value_counts(normalize=True, dropna=True).sort_index().head(5)
-                top_values = {str(k): round(v * 100, 2) for k, v in value_counts.items()}
-                top_values_str = ", ".join([f"{k}: {v}%" for k, v in top_values.items()])
-                label = f"{col} (binned)"
-            else:
-                value_counts = df_clean[col].value_counts(normalize=True, dropna=True).head(5)
-                top_values = {str(k): round(v * 100, 2) for k, v in value_counts.items()}
-                top_values_str = ", ".join([f"{k}: {v}%" for k, v in top_values.items()])
-                label = col
-
-            int_summary_data.append({
-                "Column": label,
-                "Unique Values": unique_count,
-                "Top 5 Values (%)": top_values_str
-            })
-
-        int_summary_df = pd.DataFrame(int_summary_data)
-        st.dataframe(int_summary_df)
-
-    else:
-        st.info("No integer columns found.")
-
-
-
-
-# for the integer values wuth unique value more than 10, I want to devide them into bins (10 bins)
-# then instead of having the dictionary on the unique values, i wanna have that on bins, on the name of the col add (bined) for the cases this happens. 
-
-
-#userids
-
-#dates and times
+        if item['type'] == 'numeric':
+            st.subheader('Numeric summary')
+            st.dataframe(pd.DataFrame([item['stats']]), hide_index=True, width='stretch')
+            st.caption('Finite values only. Standard deviation uses the sample formula; it needs at least two values.')
+        if item['non_finite']:
+            st.warning(f"{item['non_finite']} infinite values excluded from statistics and distribution.")
+        values = distribution(frame[selected])
+        st.subheader('Value distribution')
+        st.caption('Numeric columns with more than 10 distinct finite values show all 10 equal-width intervals. Otherwise, the five most frequent values are shown. Percentages use all nonblank values (finite values for numeric columns).')
+        st.dataframe(values, hide_index=True, width='stretch')
+        if not values.empty:
+            st.bar_chart(values.set_index('Value / interval')['Count'])
+with report:
+    st.subheader('Checks to take with you')
+    report_text = report_json(summary)
+    for check in json.loads(report_text)['suggested_checks']:
+        st.write('• ' + check)
+    st.download_button('Download quality report', report_text, file_name='peeky-data-quality.json', mime='application/json')
+    st.caption('Includes counts, column statistics, methodology, and suggested checks. Contains column names but no individual rows.')
+    with st.expander('How the analysis works'):
+        st.write(json.loads(report_text)['methodology'])

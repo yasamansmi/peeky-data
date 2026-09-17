@@ -1,0 +1,16 @@
+order_id,region,channel,order_value,delivery_days,feedback
+001,West,Web,84.50,3,Great
+002,East,Store,120,2,Great
+003,West,Web,35,,Okay
+004,North,Web,210,5,
+005,East,Store,65,2,Okay
+006,South,Web,,4,Great
+007,West,Store,92,3,Okay
+008,South,Web,45,7,Poor
+009,East,Web,180,2,Great
+010,North,Store,72,4,Okay
+011,West,Web,310,1,Great
+012,South,Store,54,3,
+013,East,Web,98,2,Great
+014,North,Web,140,6,Okay
+008,South,Web,45,7,Poor
